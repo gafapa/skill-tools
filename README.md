@@ -1,8 +1,6 @@
 # skill-tools
 
-> A Node.js skill for AI agents — search the web for PDFs and images, download and validate files, convert PDFs to Markdown, and generate speech locally with Supertonic v2.
-
-[![npm skills](https://img.shields.io/badge/install-npx%20skills%20add%20gafapa%2Fskill--tools-blue)](https://skills.sh/gafapa/skill-tools)
+A Node.js skill/library for AI agents to search PDFs/images, download and validate files, convert PDFs to Markdown, and generate speech locally with Supertone Supertonic ONNX models.
 
 ## Install
 
@@ -20,17 +18,15 @@ npm install
 
 ## Features
 
-| Capability           | Details                                                              |
-| -------------------- | -------------------------------------------------------------------- |
-| 🔍 **PDF Search**     | DuckDuckGo HTML scraping — no API key                                |
-| 🖼️ **Image Search**   | Google Images via `google-img-scrap` — no API key                    |
-| ⬇️ **Safe Download**  | Streaming (RAM-efficient), MIME validation, auto-fix extension       |
-| 📄 **PDF → Markdown** | Mozilla PDF.js via `unpdf` — headings, bullets, URL repair, metadata |
-| 🔊 **Text to Speech** | Supertonic v2 ONNX — fully offline, configurable voice/speed/steps   |
+- `searchPDFs(query, limit)`: PDF search via Bing HTML scraping (no API key)
+- `searchImages(query, limit)`: Google Images via `google-img-scrap` (no API key)
+- `downloadFile(url, outputDir, expectedType)`: streaming download + MIME validation + extension fix
+- `convertPdfToMarkdown(pdfPath, options)`: PDF to structured Markdown (`unpdf` / PDF.js)
+- `generateSpeech(text, outputPath, options)`: local TTS with ONNX Runtime + automatic model download
 
 ## Usage
 
-```javascript
+```js
 import {
   searchPDFs,
   searchImages,
@@ -38,94 +34,97 @@ import {
   convertPdfToMarkdown,
   generateSpeech,
 } from './index.js';
+import fs from 'node:fs/promises';
 ```
 
 ### Search
 
-```javascript
-const pdfs   = await searchPDFs('machine learning tutorial', 5);
+```js
+const pdfs = await searchPDFs('machine learning tutorial', 5);
 const images = await searchImages('space wallpaper', 3);
 ```
 
 ### Download
 
-```javascript
-// expectedType: 'pdf' | 'image'
+`downloadFile()` expects the destination directory to exist:
+
+```js
+await fs.mkdir('./downloads', { recursive: true });
 const savedPath = await downloadFile(pdfs[0].url, './downloads', 'pdf');
 ```
 
-### PDF → Markdown
+### PDF to Markdown
 
-```javascript
+```js
 const markdown = await convertPdfToMarkdown(savedPath, {
-  detectHeadings:   true,   // auto-detect h1/h2
-  joinParagraphs:   true,   // join broken lines
-  normaliseBullets: true,   // • ▶ → to -
-  fixBrokenUrls:    true,   // repair split URLs
-  includeMetadata:  false,  // prepend YAML frontmatter
+  detectHeadings: true,
+  joinParagraphs: true,
+  normaliseBullets: true,
+  fixBrokenUrls: true,
+  includeMetadata: false,
 });
 ```
 
-### Text to Speech
+### Text to Speech (automatic asset download)
 
-> Requires the Supertonic v2 ONNX model in `./models/supertonic.onnx`.  
-> Download from [HuggingFace — supertone-inc/supertonic](https://huggingface.co/supertone-inc/supertonic).
+On first run, the library downloads the required assets from Hugging Face into:
 
-```javascript
+- `./models/supertonic/onnx/` (multiple ONNX files + JSON metadata)
+- `./models/supertonic/voice_styles/` (selected voice style JSON)
+
+```js
 await generateSpeech('Hello world!', './audio.wav', {
-  voice: 'F1',   // F1–F5 (female) · M1–M5 (male)
-  speed: 1.0,    // 0.8 = slower · 1.5 = faster
-  steps: 20,     // fewer = faster · more = higher quality
+  voice: 'F1',   // F1-F5 or M1-M5, or a local .json voice-style path
+  lang: 'en',    // en | ko | es | pt | fr
+  speed: 1.0,
+  steps: 20,
 });
 ```
 
-### Full Pipeline
+### Full pipeline example
 
-```javascript
-import { searchPDFs, downloadFile, convertPdfToMarkdown, generateSpeech } from './index.js';
-import fs from 'fs/promises';
-
+```js
 await fs.mkdir('./downloads', { recursive: true });
 
 const [first] = await searchPDFs('javascript guide', 3);
-const pdfPath  = await downloadFile(first.url, './downloads', 'pdf');
+const pdfPath = await downloadFile(first.url, './downloads', 'pdf');
 const markdown = await convertPdfToMarkdown(pdfPath, { includeMetadata: true });
 
 await fs.writeFile(pdfPath.replace('.pdf', '.md'), markdown);
-await generateSpeech(markdown.slice(0, 400), './summary.wav', { voice: 'F1' });
+await generateSpeech(markdown.slice(0, 400), './summary.wav', {
+  voice: 'F1',
+  lang: 'en',
+  steps: 5,
+});
 ```
 
-## Project Structure
+## Testing
 
-```
-skill-tools/
-├── SKILL.md          ← Skill definition (compatible with skills.sh)
-├── index.js          ← Public API
-├── package.json
-└── src/
-    ├── search.js         searchPDFs · searchImages
-    ├── download.js       downloadFile
-    ├── validate.js       validateBuffer · fixExtension
-    ├── pdf_converter.js  convertPdfToMarkdown
-    └── tts.js            generateSpeech
+Fast unit tests (default):
+
+```bash
+npm test
 ```
 
-## Requirements
+Integration tests are separated:
 
-- Node.js ≥ 18 (ESM)
-- For TTS: `supertonic.onnx` model in `./models/` (see above)
+```bash
+npm run test:integration:search   # set RUN_NETWORK_TESTS=1 to actually run
+npm run test:integration:tts      # set RUN_TTS_INTEGRATION=1 to actually run
+```
 
-## Dependencies
+PowerShell examples:
 
-| Package            | Purpose                                          |
-| ------------------ | ------------------------------------------------ |
-| `unpdf`            | PDF text extraction (Mozilla PDF.js, ESM-native) |
-| `onnxruntime-node` | ONNX inference for Supertonic v2 TTS             |
-| `wavefile`         | Write WAV audio output                           |
-| `axios`            | HTTP requests for downloads                      |
-| `file-type`        | MIME magic-number validation                     |
-| `google-img-scrap` | Google Image search (no key)                     |
-| `cheerio`          | HTML parsing for PDF search                      |
+```powershell
+$env:RUN_NETWORK_TESTS='1'; npm run test:integration:search
+$env:RUN_TTS_INTEGRATION='1'; npm run test:integration:tts
+```
+
+## Notes
+
+- Search functions return `[]` on recoverable failures.
+- Download / PDF conversion / TTS return `null` on recoverable failures.
+- TTS inference runs locally after the one-time asset download.
 
 ## License
 

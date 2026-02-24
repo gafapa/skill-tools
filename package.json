@@ -6,8 +6,10 @@
     "type": "module",
     "scripts": {
         "test": "node --test test/*.test.js",
-        "test:unit": "SKIP_NETWORK=1 node --test test/validate.test.js test/pdf_converter.test.js test/exports.test.js",
-        "test:exports": "node --test test/exports.test.js"
+        "test:unit": "node --test test/*.test.js",
+        "test:exports": "node --test test/exports.test.js",
+        "test:integration:search": "node --test test/search.integration.js",
+        "test:integration:tts": "node --test test/tts.integration.js"
     },
     "keywords": [
         "pdf",

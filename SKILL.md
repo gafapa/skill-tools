@@ -1,23 +1,15 @@
 ---
 name: skill-tools
 description: >
-  Tools for gathering and processing knowledge from the web. Lets agents search for PDFs and images,
-  stream-download and validate files, convert PDFs to well-structured Markdown (headings, bullets,
-  paragraphs, metadata), and generate speech locally using Supertonic v2 via ONNX Runtime.
-  Zero cloud dependencies — everything runs on-device.
+  Local Node.js tools for web knowledge gathering and processing: search PDFs and images, stream-download
+  and validate files, convert PDFs to structured Markdown, and generate speech locally with Supertone
+  Supertonic ONNX Runtime. Use when Codex needs no-API-key search, safe file downloads, PDF text extraction,
+  or on-device TTS (with a one-time model download to ./models/supertonic/).
 ---
 
 # skill-tools
 
-A Node.js utility skill that equips AI agents with file-gathering and knowledge-processing capabilities.
-
-## When to Use This Skill
-
-Use this skill when you need to:
-- Search the web for PDF documents or images without an API key
-- Download files safely (streaming, MIME validation, auto-extension correction)
-- Convert a PDF into clean, readable Markdown suitable for LLM consumption
-- Generate speech from text entirely offline using the Supertonic v2 ONNX model
+Use this skill as a local utility toolkit for search, file acquisition, PDF conversion, and TTS.
 
 ## Setup
 
@@ -27,17 +19,26 @@ Install dependencies from the skill directory:
 npm install
 ```
 
-Import any function in an ESM script:
+Import functions in ESM:
 
 ```javascript
-import { searchPDFs, downloadFile, convertPdfToMarkdown, generateSpeech } from './index.js';
+import {
+  searchPDFs,
+  searchImages,
+  downloadFile,
+  convertPdfToMarkdown,
+  generateSpeech,
+} from './index.js';
 ```
 
-## Available Tools
+## Functions
 
 ### `searchPDFs(query, limit = 10)`
 
-Searches DuckDuckGo for PDF files. Returns `{ title, url }[]`. Includes a 1–3 s random delay to avoid bot blocks.
+- Uses Bing HTML search (not DuckDuckGo).
+- Returns `Array<{ title, url }>` filtered to `.pdf` URLs.
+- Returns `[]` on recoverable failures.
+- Includes a short randomized delay to reduce bot blocking.
 
 ```javascript
 const pdfs = await searchPDFs('machine learning tutorial', 5);
@@ -45,7 +46,9 @@ const pdfs = await searchPDFs('machine learning tutorial', 5);
 
 ### `searchImages(query, limit = 10)`
 
-Searches Google Images via `google-img-scrap`. No API key needed. Returns `{ title, url }[]`.
+- Uses `google-img-scrap`.
+- Returns `Array<{ title, url }>`.
+- Returns `[]` on recoverable failures.
 
 ```javascript
 const images = await searchImages('space wallpaper hd', 3);
@@ -53,28 +56,32 @@ const images = await searchImages('space wallpaper hd', 3);
 
 ### `downloadFile(url, outputDir, expectedType)`
 
-Stream-downloads a file to disk using minimal memory. Validates the real MIME type with magic-number detection and fixes the extension automatically.
+Stream-downloads to disk, validates content type using magic bytes, and fixes file extension.
 
 - `expectedType`: `'pdf'` | `'image'`
-- Returns the saved file path, or `null` on failure.
+- Returns saved file path on success, `null` on failure
+- Caller should ensure `outputDir` exists first
 
 ```javascript
-const path = await downloadFile(pdfs[0].url, './downloads', 'pdf');
+import fs from 'node:fs/promises';
+
+await fs.mkdir('./downloads', { recursive: true });
+const localPath = await downloadFile(pdfs[0].url, './downloads', 'pdf');
 ```
 
 ### `convertPdfToMarkdown(pdfPath, options?)`
 
-Converts a PDF to structured Markdown using Mozilla PDF.js (`unpdf` v1.4.0 — ESM native, zero dependencies).
+Converts PDFs to Markdown using `unpdf` (Mozilla PDF.js) with heuristics for headings, paragraphs, bullets, and URL repair.
 
-**Options** (all default `true` except `includeMetadata`):
+Options (defaults shown):
 
-| Option             | Default | Effect                                                      |
-| ------------------ | ------- | ----------------------------------------------------------- |
-| `detectHeadings`   | `true`  | Marks titles as `# H1` / `## H2`                            |
-| `joinParagraphs`   | `true`  | Joins lines that form the same paragraph                    |
-| `normaliseBullets` | `true`  | Converts `•` `▶` `→` to markdown `-`                        |
-| `fixBrokenUrls`    | `true`  | Repairs URLs split across lines                             |
-| `includeMetadata`  | `false` | Prepends a YAML frontmatter block with title, author, pages |
+- `detectHeadings = true`
+- `joinParagraphs = true`
+- `normaliseBullets = true`
+- `fixBrokenUrls = true`
+- `includeMetadata = false`
+
+Returns Markdown string on success, `null` on failure.
 
 ```javascript
 const md = await convertPdfToMarkdown('./report.pdf', { includeMetadata: true });
@@ -82,44 +89,66 @@ const md = await convertPdfToMarkdown('./report.pdf', { includeMetadata: true })
 
 ### `generateSpeech(text, outputPath, options?)`
 
-Generates a WAV audio file from text using the **Supertonic v2** ONNX model on-device via `onnxruntime-node`.
+Generates a WAV file locally using Supertone Supertonic ONNX models (`onnxruntime-node`).
 
-> **Requires model:** Download `supertonic.onnx` from [HuggingFace — supertone-inc/supertonic](https://huggingface.co/supertone-inc/supertonic) and place it at `./models/supertonic.onnx`.
+Automatic download on first use:
 
-| Option  | Default | Effect                                                  |
-| ------- | ------- | ------------------------------------------------------- |
-| `voice` | `'F1'`  | `F1`–`F5` female · `M1`–`M5` male                       |
-| `speed` | `1.0`   | Rate multiplier (`0.8` slow · `1.5` fast)               |
-| `steps` | `20`    | Inference steps (fewer = faster, more = better quality) |
+- ONNX assets to `./models/supertonic/onnx/`
+- Voice style JSON to `./models/supertonic/voice_styles/`
+
+Supported options:
+
+- `voice` (default `'F1'`): `F1`-`F5`, `M1`-`M5`, or a local voice-style JSON path
+- `lang` (default `'en'`): `en`, `ko`, `es`, `pt`, `fr`
+- `speed` (default `1.0`)
+- `steps` (default `20`)
+- `useGpu` (default `false`, currently unsupported)
+- `modelRoot` (default `./models/supertonic`)
+
+Returns output WAV path on success, `null` on failure.
 
 ```javascript
-await generateSpeech('Hello!', './out.wav', { voice: 'M2', speed: 1.2, steps: 30 });
+await generateSpeech('Hello!', './out.wav', {
+  voice: 'M2',
+  lang: 'en',
+  speed: 1.1,
+  steps: 10,
+});
 ```
 
-## End-to-End Example
+## End-to-end example
 
 ```javascript
-import { searchPDFs, downloadFile, convertPdfToMarkdown, generateSpeech } from './index.js';
-import fs from 'fs/promises';
+import fs from 'node:fs/promises';
+import {
+  searchPDFs,
+  downloadFile,
+  convertPdfToMarkdown,
+  generateSpeech,
+} from './index.js';
 
 await fs.mkdir('./downloads', { recursive: true });
 
-// 1. Find a PDF
 const [first] = await searchPDFs('javascript guide', 3);
-
-// 2. Download it
 const pdfPath = await downloadFile(first.url, './downloads', 'pdf');
-
-// 3. Convert to Markdown
 const markdown = await convertPdfToMarkdown(pdfPath, { includeMetadata: true });
-await fs.writeFile(pdfPath.replace('.pdf', '.md'), markdown);
 
-// 4. Narrate a summary (requires ONNX model)
-await generateSpeech(markdown.slice(0, 400), './summary.wav', { voice: 'F1' });
+await fs.writeFile(pdfPath.replace('.pdf', '.md'), markdown);
+await generateSpeech(markdown.slice(0, 400), './summary.wav', { voice: 'F1', lang: 'en' });
 ```
 
-## Notes
+## Testing
 
-- All functions are async and return `null` on recoverable errors.
-- TTS requires the Supertonic ONNX model (not bundled — too large for git).
-- No API keys are required for search or download.
+Use the fast suite by default:
+
+```bash
+npm test
+```
+
+Integration suites are explicit and opt-in:
+
+```bash
+npm run test:integration:search  # requires RUN_NETWORK_TESTS=1
+npm run test:integration:tts     # requires RUN_TTS_INTEGRATION=1
+```
+
