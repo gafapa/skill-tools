@@ -1,7 +1,7 @@
 {
-    "name": "knowledge-compiler",
+    "name": "skill-tools",
     "version": "1.0.0",
-    "description": "Library to search, download, and validate PDFs and images.",
+    "description": "AI agent skill: search PDFs/images, download files, convert PDF to Markdown, generate speech with Supertonic v2 ONNX.",
     "main": "index.js",
     "type": "module",
     "scripts": {
