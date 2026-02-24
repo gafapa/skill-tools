@@ -5,8 +5,8 @@ import { fileTypeFromFile } from 'file-type';
 import path from 'path';
 
 /**
- * Descarga un archivo por streaming hacia el disco para ahorrar RAM,
- * valida su tipo real y lo renombra si es necesario.
+ * Downloads a file via streaming directly to disk to save RAM,
+ * validates its real type, and renames it if necessary.
  * @param {string} url - URL del archivo.
  * @param {string} outputDir - Directorio de destino.
  * @param {string} expectedType - 'pdf' o 'image'.
@@ -17,7 +17,7 @@ export async function downloadFile(url, outputDir, expectedType) {
     try {
         const response = await axios.get(url, { responseType: 'stream' });
 
-        // Determinar nombre inicial
+        // Determine initial filename
         let filename = path.basename(new URL(url).pathname);
         if (!filename || filename.length > 100) filename = `downloaded_${Date.now()}`;
 
@@ -26,13 +26,13 @@ export async function downloadFile(url, outputDir, expectedType) {
 
         response.data.pipe(writer);
 
-        // Esperar a que el stream finalice de escribir en disco
+        // Wait for the stream to finish writing to disk
         await new Promise((resolve, reject) => {
             writer.on('finish', resolve);
             writer.on('error', reject);
         });
 
-        // Validar tipo con el archivo en disco (consume menos memoria)
+        // Validate type with the file on disk (consumes less memory)
         const typeInfo = await fileTypeFromFile(tempPath);
 
         let isValid = false;
@@ -43,11 +43,11 @@ export async function downloadFile(url, outputDir, expectedType) {
 
         if (!isValid) {
             console.warn(`Validation failed for ${url} (got ${typeInfo?.mime || 'unknown'}). Expected ${expectedType}.`);
-            await unlink(tempPath); // Borrar temporal
+            await unlink(tempPath); // Delete temporary file
             return null;
         }
 
-        // Renombrar con extensión correcta si no coincide
+        // Rename with correct extension if it doesn't match
         const ext = path.extname(filename);
         if (ext.slice(1) !== typeInfo.ext) {
             filename = `${path.basename(filename, ext)}.${typeInfo.ext}`;

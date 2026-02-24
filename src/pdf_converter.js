@@ -36,22 +36,22 @@ function assignHeadingLevel(line, isFirst) {
 // ---------------------------------------------------------------------------
 
 /**
- * Convierte un archivo PDF a Markdown estructurado utilizando `unpdf` (Mozilla PDF.js).
+ * Converts a PDF file to structured Markdown using `unpdf` (Mozilla PDF.js).
  *
- * Mejoras respecto a pdf-parse:
- * - Motor Mozilla PDF.js actualizado (el mismo de Firefox)
- * - Extracción de texto por página con merge inteligente
- * - Detección de encabezados, viñetas, párrafos y URLs rotas
- * - Eliminación de cabeceras/pies repetidos
- * - Soporte opcional de frontmatter YAML con metadata
+ * Improvements over pdf-parse:
+ * - Updated Mozilla PDF.js engine (the same as Firefox)
+ * - Page-by-page text extraction with smart merge
+ * - Detection of headings, bullets, paragraphs, and broken URLs
+ * - Removal of repeated headers/footers
+ * - Optional support for YAML frontmatter with metadata
  *
- * @param {string} pdfPath - Ruta al PDF.
+ * @param {string} pdfPath - Path to the PDF.
  * @param {Object} [options]
- * @param {boolean} [options.detectHeadings=true]   - Detectar encabezados automáticamente.
- * @param {boolean} [options.joinParagraphs=true]   - Unir líneas rotas de un mismo párrafo.
- * @param {boolean} [options.normaliseBullets=true] - Normalizar viñetas a markdown `-`.
- * @param {boolean} [options.fixBrokenUrls=true]    - Reparar URLs cortadas entre líneas.
- * @param {boolean} [options.includeMetadata=false] - Añadir frontmatter YAML al inicio.
+ * @param {boolean} [options.detectHeadings=true]   - Automatically detect headings.
+ * @param {boolean} [options.joinParagraphs=true]   - Join broken lines of the same paragraph.
+ * @param {boolean} [options.normaliseBullets=true] - Normalize bullets to markdown `-`.
+ * @param {boolean} [options.fixBrokenUrls=true]    - Repair URLs cut between lines.
+ * @param {boolean} [options.includeMetadata=false] - Add YAML frontmatter at the beginning.
  * @returns {Promise<string|null>}
  */
 export async function convertPdfToMarkdown(pdfPath, options = {}) {
@@ -66,18 +66,18 @@ export async function convertPdfToMarkdown(pdfPath, options = {}) {
     try {
         const dataBuffer = await fs.readFile(pdfPath);
 
-        // 1. Cargar el PDF con Mozilla PDF.js vía unpdf
-        // Extraemos página por página y las unimos manualmente para preservar estructura
+        // 1. Load the PDF with Mozilla PDF.js via unpdf
+        // Extract page by page and join them manually to preserve structure
         const pdf = await getDocumentProxy(new Uint8Array(dataBuffer));
         const { totalPages, text: pages } = await extractText(pdf, { mergePages: false });
 
-        // Unir páginas con doble salto de línea para preservar la estructura de párrafos
+        // Join pages with a double newline to preserve paragraph structure
         let text = pages.join('\n\n');
 
-        // 2. Normalizar saltos de línea
+        // 2. Normalize line breaks
         text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-        // 3. Eliminar cabeceras/pies de página repetidos en varias páginas
+        // 3. Remove headers/footers repeated across multiple pages
         {
             const lines = text.split('\n');
             const freq = {};
@@ -89,28 +89,28 @@ export async function convertPdfToMarkdown(pdfPath, options = {}) {
             text = lines.filter(l => (freq[l.trim()] || 0) < threshold).join('\n');
         }
 
-        // 4. Reparar URLs cortadas por salto de línea
+        // 4. Repair URLs cut by line breaks
         if (fixBrokenUrls) {
             text = joinBrokenUrls(text);
         }
 
-        // 5. Normalizar viñetas tipográficas → markdown
+        // 5. Normalize typographic bullets → markdown
         if (normaliseBullets) {
             text = text.split('\n').map(normaliseBullet).join('\n');
         }
 
-        // 6. Reconstruir párrafos rotos
+        // 6. Reconstruct broken paragraphs
         if (joinParagraphs) {
-            // Palabras partidas con guión al final de línea: "pa-\nlabra" → "palabra"
+            // Hyphenated words split across lines: "pa-\nlabra" → "palabra"
             text = text.replace(/(\w)-\n(\w)/g, '$1$2');
-            // Línea que no cierra oración + siguiente que empieza en minúscula
+            // Line that doesn't end a sentence + following line starting with lowercase
             text = text.replace(/([^\.\!\?\:\n])\n([a-záéíóúa-z0-9])/g, '$1 $2');
         }
 
-        // 7. Comprimir saltos de línea excesivos
+        // 7. Compress excessive line breaks
         text = text.replace(/\n{3,}/g, '\n\n');
 
-        // 8. Detectar y marcar encabezados
+        // 8. Detect and mark headings
         if (detectHeadings) {
             let firstFound = false;
             text = text.split('\n').map(line => {
@@ -124,11 +124,11 @@ export async function convertPdfToMarkdown(pdfPath, options = {}) {
             }).join('\n');
         }
 
-        // 9. Trim final de espacios por línea y espacios múltiples
+        // 9. Final trim of whitespace per line and multiple spaces
         text = text.split('\n').map(l => l.trimEnd()).join('\n');
         text = text.replace(/ {2,}/g, ' ').trim();
 
-        // 10. Frontmatter YAML opcional con metadata del doc
+        // 10. Optional YAML frontmatter with doc metadata
         if (includeMetadata) {
             const info = await pdf.getMetadata().catch(() => ({}));
             const meta = info?.info || {};
@@ -144,11 +144,11 @@ export async function convertPdfToMarkdown(pdfPath, options = {}) {
             text = frontmatter + text;
         }
 
-        console.log(`[PDF→MD] ✓ Convertido (${totalPages} página/s): ${pdfPath}`);
+        console.log(`[PDF→MD] ✓ Converted (${totalPages} page/s): ${pdfPath}`);
         return text;
 
     } catch (error) {
-        console.error(`[PDF→MD Error] No se pudo convertir ${pdfPath}:`, error.message);
+        console.error(`[PDF→MD Error] Could not convert ${pdfPath}:`, error.message);
         return null;
     }
 }

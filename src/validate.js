@@ -2,9 +2,9 @@ import { fileTypeFromBuffer } from 'file-type';
 import path from 'path';
 
 /**
- * Valida si el buffer corresponde al tipo esperado.
- * @param {Buffer} buffer - El contenido del archivo.
- * @param {string} expectedMime - El tipo MIME esperado (ej. 'application/pdf', 'image/jpeg').
+ * Validates if the buffer corresponds to the expected type.
+ * @param {Buffer} buffer - The file content.
+ * @param {string} expectedMime - The expected MIME type (e.g. 'application/pdf', 'image/jpeg').
  * @returns {Promise<boolean>}
  */
 export async function validateBuffer(buffer, expectedMime) {
@@ -27,10 +27,10 @@ export async function validateBuffer(buffer, expectedMime) {
 }
 
 /**
- * Corrige la extensión del archivo basado en su contenido real.
- * @param {string} filename - Nombre original.
- * @param {Buffer} buffer - Contenido.
- * @returns {Promise<string>} - Nombre con extensión corregida.
+ * Fixes the file extension based on its real content.
+ * @param {string} filename - Original filename.
+ * @param {Buffer} buffer - Content.
+ * @returns {Promise<string>} - Filename with the fixed extension.
  */
 export async function fixExtension(filename, buffer) {
     const type = await fileTypeFromBuffer(buffer);
