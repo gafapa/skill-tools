@@ -4,8 +4,8 @@ import fsp from 'fs/promises';
 import path from 'path';
 import * as ort from 'onnxruntime-node';
 
-const HF_REPO_BASE = 'https://huggingface.co/Supertone/supertonic/resolve/main';
-const DEFAULT_MODEL_ROOT = path.resolve('models', 'supertonic');
+const HF_REPO_BASE = 'https://huggingface.co/Supertone/supertonic-2/resolve/main';
+const DEFAULT_MODEL_ROOT = path.resolve('models', 'supertonic-2');
 const DEFAULT_ONNX_DIR = path.join(DEFAULT_MODEL_ROOT, 'onnx');
 const DEFAULT_VOICE_DIR = path.join(DEFAULT_MODEL_ROOT, 'voice_styles');
 
@@ -193,8 +193,8 @@ async function ensureVoiceStyle(voiceSpec) {
 }
 
 async function ensureSupertonicAssets({ voice, modelRoot = DEFAULT_MODEL_ROOT }) {
-    const onnxDir = await ensureOnnxAssets(modelRoot);
     const voiceSpec = resolveVoiceSpec(voice, modelRoot);
+    const onnxDir = await ensureOnnxAssets(modelRoot);
     const voicePath = await ensureVoiceStyle(voiceSpec);
     return { onnxDir, voicePath, voiceId: voiceSpec.voiceId };
 }

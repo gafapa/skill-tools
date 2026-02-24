@@ -4,7 +4,7 @@ description: >
   Local Node.js tools for web knowledge gathering and processing: search PDFs and images, stream-download
   and validate files, convert PDFs to structured Markdown, and generate speech locally with Supertone
   Supertonic ONNX Runtime. Use when Codex needs no-API-key search, safe file downloads, PDF text extraction,
-  or on-device TTS (with a one-time model download to ./models/supertonic/).
+  or on-device TTS (with a one-time model download to ./models/supertonic-2/).
 ---
 
 # skill-tools
@@ -91,10 +91,10 @@ const md = await convertPdfToMarkdown('./report.pdf', { includeMetadata: true })
 
 Generates a WAV file locally using Supertone Supertonic ONNX models (`onnxruntime-node`).
 
-Automatic download on first use:
+Automatic download on first use (Supertonic 2):
 
-- ONNX assets to `./models/supertonic/onnx/`
-- Voice style JSON to `./models/supertonic/voice_styles/`
+- ONNX assets to `./models/supertonic-2/onnx/`
+- Voice style JSON to `./models/supertonic-2/voice_styles/`
 
 Supported options:
 
@@ -103,7 +103,7 @@ Supported options:
 - `speed` (default `1.0`)
 - `steps` (default `20`)
 - `useGpu` (default `false`, currently unsupported)
-- `modelRoot` (default `./models/supertonic`)
+- `modelRoot` (default `./models/supertonic-2`)
 
 Returns output WAV path on success, `null` on failure.
 
@@ -151,4 +151,3 @@ Integration suites are explicit and opt-in:
 npm run test:integration:search  # requires RUN_NETWORK_TESTS=1
 npm run test:integration:tts     # requires RUN_TTS_INTEGRATION=1
 ```
-

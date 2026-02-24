@@ -67,10 +67,10 @@ const markdown = await convertPdfToMarkdown(savedPath, {
 
 ### Text to Speech (automatic asset download)
 
-On first run, the library downloads the required assets from Hugging Face into:
+On first run, the library downloads the required Supertonic 2 assets from Hugging Face into:
 
-- `./models/supertonic/onnx/` (multiple ONNX files + JSON metadata)
-- `./models/supertonic/voice_styles/` (selected voice style JSON)
+- `./models/supertonic-2/onnx/` (multiple ONNX files + JSON metadata)
+- `./models/supertonic-2/voice_styles/` (selected voice style JSON)
 
 ```js
 await generateSpeech('Hello world!', './audio.wav', {
@@ -124,7 +124,7 @@ $env:RUN_TTS_INTEGRATION='1'; npm run test:integration:tts
 
 - Search functions return `[]` on recoverable failures.
 - Download / PDF conversion / TTS return `null` on recoverable failures.
-- TTS inference runs locally after the one-time asset download.
+- TTS inference runs locally after the one-time Supertonic 2 asset download.
 
 ## License
 
