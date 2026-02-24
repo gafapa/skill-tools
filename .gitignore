@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Runtime output
+downloads/
+*.tmp
+*.wav
+
+# Logs
+*.log
+err.txt
+error_log.txt
+
+# Model files (too large for git — download separately from HuggingFace)
+models/
+*.onnx
+
+# OS
+.DS_Store
+Thumbs.db
